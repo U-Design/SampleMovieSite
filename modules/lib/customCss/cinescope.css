@@ -1,5 +1,13 @@
 .header{
-	background-color: #236167
+	background-color: #236167;
+	padding-top:10px;
+	
+}
+.footer{
+	background-color: #236167;
+}
+.header .navbar-nav >li .dropdown-menu {
+	margin-top: 10px;
 }
 .header .navbar{
 	background: none;
@@ -8,7 +16,7 @@
 
 .header .navbar-nav >li >a {
 	top:10px;
-	/*padding: 0 10px;*/
+	padding: 0 10px;
 	font-size: 14px;
 	line-height: 28px;
 	color: #FFF;
@@ -22,4 +30,11 @@
 	color: #FFF;
 	text-transform: uppercase;
 	font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
+.cs-book-dropdown {
+	width:100%;
+	text-align: left;
+}
+.cs-select > div .dropdown .btn.btn-default .glyphicon.glyphicon-menu-down{
+	float: right;
 }
