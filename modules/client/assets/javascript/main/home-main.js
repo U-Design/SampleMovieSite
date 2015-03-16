@@ -14,11 +14,16 @@ require.config({
 			deps : ['jquery'],
 			exports : 'angular'
 		},
-		bootstrap :['jquery'],
-		angular_resource:['angular'],
-		angular_route: ['angular'],
-		app :['angular','angular_route','angular_resource'],
-		routes :['app']
+		bootstrap :{
+			deps:['jquery']
+		},
+		angular_resource:{
+			deps:['angular']
+		},
+		angular_route:{
+			deps:['angular'],
+			exports : 'angular_route'
+		}
 	}
 });
 
@@ -31,6 +36,6 @@ require([
 	'routes'
 	
 	], function(angular){
-		angular.bootstrap(document, ['MovieModule']);
+		angular.bootstrap($('body')[0], ['MovieModule']);
 
 });
