@@ -1,0 +1,70 @@
+.header{
+	background-color: #236167;
+	padding-top:10px;
+	
+}
+.header .navbar-nav >li .dropdown-menu {
+	margin-top: 10px;
+}
+.header .navbar{
+	background: none;
+	border: none;
+}
+
+.header .navbar-nav >li >a {
+	top:10px;
+	padding: 0 10px;
+	font-size: 14px;
+	line-height: 28px;
+	color: #FFF;
+	text-transform: uppercase;
+	font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
+.header .navbar-brand{
+	top:10px;
+	font-size: 18px;
+	line-height: 28px;
+	color: #FFF;
+	text-transform: uppercase;
+	font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
+.cs-book-dropdown {
+	width:100%;
+	text-align: left;
+}
+.cs-select > div .dropdown .btn.btn-default .glyphicon.glyphicon-menu-down{
+	float: right;
+}
+.cs-select > div{
+	padding: 5px 15px;
+}
+/*  footer */
+.footer{
+	background-color: #236167;
+	
+}
+.footer , a.footer{
+	color: #FFF;
+}
+.footer > div{
+	border-right: 1px solid white;
+	min-height: 200px;
+}
+/*carousel*/
+.carousel-indicators.cine-slider li{
+	border-width: 2px;
+	background-color: white;
+	border-color: black;
+
+}
+.carousel-indicators.cine-slider li.active{
+	border-width: 2px;
+	background-color: yellow
+}
+.cine-book-btn{
+	width: 100%;
+
+}
+.container.row{
+	margin: auto;
+}
