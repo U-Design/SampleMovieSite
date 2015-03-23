@@ -1,0 +1,19 @@
+<ul class="tab tree">
+	<li class="tabli last" ng-repeat = "tab in topTab"  ><label ng-bind-html="tab.topTab.name"></label>
+			<ul >
+				<li class="role" ng-repeat= "role in tab.roles" ng-class="getClass($last)" ><label ng-bind-html="role.role.name"></label>
+
+						<ul class="group">
+							<li ng-repeat="group in role.groupArr" ng-class="getClass($last)" class="groups"><label ng-bind-html="group.group.name"></label>
+								<ul class="window">
+										<li ng-repeat="win in group.windowArr" ng-class="getClass($last)" class="window"><a href="#" ng-bind-html="win.winTitle"></a></li>
+								</ul>
+
+							</li>
+						</ul>
+						
+
+				</li>
+			</ul>
+	</li>
+</ul>

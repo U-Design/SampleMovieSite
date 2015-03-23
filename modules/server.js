@@ -1,6 +1,15 @@
 var express = require('express');
-var path = require('path');
-var app = express();
+	path = require('path'),
+	app = express(),
+	mysql = require('mysql');
+
+var dbConnect = mysql.createConnection({
+	host :"localhost",
+	user :"root",
+	password :"password",
+	database :"Movie_DB"
+});
+
 
 app.use(express.static('./client'));
 //app.use(express.static(path.join(__dirname+'./client')));

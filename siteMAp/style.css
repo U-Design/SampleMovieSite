@@ -1,0 +1,94 @@
+/*#root{
+	background-color: skyblue;
+	padding: 6px;
+	border: 1px solid black;
+	position: relative;
+	left: 50%;
+}
+body{
+	overflow: auto;
+	width: auto;
+	display: inline-block;
+	position: relative;
+}
+.tab > li{
+	float: left;
+}*/
+#homeList{
+	font-size: 20px;
+	font-weight: bold;
+	list-style-type: none;
+
+}
+#homeList ul {
+  font-size: 18px;
+  font-weight: normal;
+  margin-top: 3px;
+  
+  background: cornsilk url(vline.png) repeat-y;
+}
+
+#homeList ul ul {
+  font-size: 16px;
+}
+
+#homeList ul ul ul {
+  font-size: 14px;
+        background: aliceblue url(vline.png) repeat-y;
+}
+
+ul li a {
+  text-decoration: none;  
+}
+/*ul li a ,ul li label{
+  text-decoration: none;
+  border: 1px solid #000;
+  border-width: 0 0 1px 1px;
+  border-radius: 0 0 0 10px;
+  padding-left:5px;
+  
+}
+
+.role{
+	  border-left: 1px solid black;
+}
+.tabli{
+	border-top: 1px solid black;
+}*/
+.tab > li{
+	float: left;
+}
+li.role{
+	margin:10px;
+}
+
+ul.tree, ul.tree ul {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  list-style-type: none;
+  margin:0;
+  padding:0px;
+  	 
+}
+
+ul.tree ul{
+	margin-left: 10px;
+}
+
+ul.tree li{
+	margin: 0;
+	padding: 0 12px;
+	line-height: 20px;    
+}
+ul.tree li.otherLi{
+	background: url(node.png) no-repeat;
+}
+ul.tree li.lastLi.window {
+     background: aliceblue url(lastnode.png) no-repeat ;
+}
+
+ul.tree li.lastLi.groups {
+     background: cornsilk url(lastnode.png) no-repeat ;
+}
+ul.tree li.groups {
+     background: cornsilk  url(vline.png) repeat-y;
+}
