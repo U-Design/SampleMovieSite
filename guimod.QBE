@@ -1,0 +1,453 @@
+/**
+* Created with IntelliJ IDEA.
+* User: 453979
+* Date: 11/29/12
+* Time: 7:02 PM
+* To change this template use File | Settings | File Templates.
+*/
+define(["jquery", "widgetFactory"],
+    function($){
+        (function($,undefined){
+            $.widget("guimod.QBE",{
+                options:{
+                    winname:"",
+                    pComp:"",
+                    paramMode:"",
+                    parentToChildDataCopyStr:"",
+                    childToParentDataCopyStr:"",
+                    propertyStr:"",
+                    butId:"",
+                    parentMode:"",
+                    QBEDomain:"",
+                   /* LoggedSessionid:"",*/
+                    browInst:"",
+                    guiwinname:"",
+                    parentTabId:"",
+                    QbeType:"",
+                    udcControlType:"",
+                    childWindowRef:"",
+                    qbeValue:"",
+                    windowCalledFrom:"",
+                    ctrlClickedId:""
+                },
+      
+                _init:function(){
+                    this._callDialog();
+                },
+
+                _callDialog:function(){
+
+                 var win_name = this.options.winname;
+                 /*var Logged_Session=this.options.LoggedSessionid;*/
+                  var paramMode=  this.options.paramMode;
+                  var pComp=  this.options.pComp ;
+                  var browInst =this.options.browInst ;
+                  var guiwinname= this.options.guiwinname ;
+                  var parentMode =this.options. parentMode ;
+                  var QBEDomain=this.options.QBEDomain   ;
+                  var parentTabId = this.options.parentTabId   
+                  var width,height;
+                  if(QBEDomain="") {
+                    QBEDomain=undefined;
+                  }
+                  
+                  var wc_wcaArray = this.options.butId.split('.');
+                  this.options.ctrlClickedId = wc_wcaArray[0].replace(/(wc)/,"ct")+"_"+wc_wcaArray[1];
+                  top.qbeBtnClickedIds.push(this.options.ctrlClickedId);
+
+                 // var source= '../common/popUpInner.jsp;jsessionid=' +  Logged_Session + '?WindowName=' + win_name + '&mode=' +paramMode  + '&compname=' + pComp  + '&GuiBrowserInst=' +browInst  + '&guiwinname=' + guiwinname + '&parentMode=' +parentMode  + '&parentTabId=' + parentTabId  + '&QBEDomain=' + QBEDomain ;
+                 var source= '../common/QBELoader.jsp;?WindowName=' + win_name + '&mode=' +paramMode  + '&compname=' + pComp  + '&GuiBrowserInst=' +browInst  + '&guiwinname=' + guiwinname + '&parentMode=' +parentMode  + '&parentTabId=' + parentTabId  + '&QBEDomain=' + QBEDomain ;
+                 var dimension = this.options.propertyStr.split(";");
+                 $.each(dimension,function(i,value){
+                    if(value){
+                        var dimVal = value.split(":");
+                    if(dimVal[0] === "width"){
+                        width = dimVal[1]
+                        }else if(dimVal[0] === "height"){
+                        height =dimVal[1];
+                        }
+                    }
+                 });
+                 $(this.element).Dialog(
+                        {
+                            //title:this.options.title|| $(this.element).data("title"),
+                            url:source,
+                            modal:true,
+                            footer:false,
+                            headerClose:false,
+                            height:height,
+                            width:width,
+                            customAttributes : {type:"QBE"}
+
+                        });
+
+                 /** Added by Sohini for ARCH-13255 start **/
+                   if(top.guimod.centerAlignQBEReqrd.toUpperCase()=="YES") {
+                         $('.bancs-dialog').addClass('centerAlignQBE');     
+                   }          
+                 /** Added by Sohini for ARCH-13255 end **/
+
+                },
+
+                /*
+                Function added to support population of data from parent to child
+                */
+
+                setParent : function(winclassMappings) {
+                  if(winclassMappings && this.options.parentToChildDataCopyStr){
+                       this.options.QbeType="true";
+                   var winclass=this.getWinClass(),
+                       tableref=  window.winclassMappings[winclass],
+                       table =$("#"+tableref),
+                       cache=window.winclassMappings,
+                       childToParentDataMaping=this.getValue(table);
+                       window.winclassMappings=winclassMappings;
+                       this.setValue(childToParentDataMaping);        
+                       window.winclassMappings=cache; 
+                 }
+                },
+                getRowValue : function (table,windowRef,isValidateFn) {
+            
+                    this.options.childWindowRef = windowRef;
+                    var childToParentDataMaping=this.getValue(table);
+                    
+                    if(childToParentDataMaping) {
+                      this.setValue(childToParentDataMaping);  
+                    }
+                    
+                    if(getWindowDirtyFlag() === "false"){
+                      setWindowDirtyFlag("true");
+                   }
+                    
+                    validateOnChildWindowClose(this.options.butId);
+
+                    //Added by Sanjeev 27 Dec
+                    if(!isValidateFn && windowRef.checkMandatory() === true){
+                      hideMaskDiv(); 
+                      gsubmit();
+                    }
+                    //Sanjeev changes ends
+                    this.close();              
+
+                },
+                /*
+                Function added to differentiate from Content Search QBE (SI Application) from other QBE 
+                */
+                  getQBEType:function() {
+                    
+                    var childToParentDataCopyStr=this.options.childToParentDataCopyStr,status;
+
+                      if(childToParentDataCopyStr==='')
+                        {
+                           if(getWindowDirtyFlag() === "false"){
+                            setWindowDirtyFlag("true");
+                          }
+                        validateOnChildWindowClose(this.options.butId);
+                        this.close();   
+                        return false;
+                        }
+                        else{
+                        return true; 
+                      }
+                },
+
+                getParentToChildDataCopyStr : function() {
+                  return this.options.parentToChildDataCopyStr;
+                },
+
+                getChildToParentDataCopyStr : function() {
+                  return this.options.childToParentDataCopyStr;
+                },
+
+                getChildWindowReference : function() {
+                   return this.options.childWindowRef;
+                },
+
+                getUdcControlType : function() {
+                  return this.options.udcControlType;
+                },
+
+                  getValueFromWinAttribute:function(winclass, windowRef)
+                  {
+                    var childtoParentData = this.options.childToParentDataCopyStr.split(","),wca,
+                      that = this,valueToBeSet=[];
+                    $.each(childtoParentData,function(i,data){
+                      var tmp = data.split("="),
+                          childDetails=tmp[1];
+                          wca=childDetails.split('.')[1],
+                          value = windowRef.getValue(winclass, wca);
+                          valueToBeSet.push(value);
+                          /*that.getTextBoxValue(value,windowRef);*/
+                      });
+                    return valueToBeSet;
+                  },
+                getTextBoxValue : function (value) {
+                      var childtoParentData = this.options.childToParentDataCopyStr.split(","),domId,
+                          windowRef = this.options.windowCalledFrom;
+                               
+                  $.each(childtoParentData,function(i,data){
+                      var tmp=data.split("="),
+                          parentDetails=tmp[0],
+                          childDetails=tmp[1],
+                          parentWindow=parentDetails.split('.')[0],
+                          parentWindowattr=parentDetails.split('.')[1];
+                          if(value[i]!=='&'){
+                              setValue(parentWindow,parentWindowattr,value[i]);
+                          }
+                          else{
+                              setValue(parentWindow,parentWindowattr,"");
+                          }
+                          domId = windowRef.getDomID(parentWindow,parentWindowattr,value[i]);
+                           $(domId.split("_div")[0]).focus();
+                  });
+                   if(getWindowDirtyFlag() === "false"){
+                      setWindowDirtyFlag("true");
+                   }
+                    validateOnChildWindowClose(this.options.butId);
+                     
+                   
+                    this.close();
+                    
+                },                   
+                getOldGUIRowValue:function(tableCtrl) {
+
+                  var childtoParentData = this.options.childToParentDataCopyStr.split(","),wcaName,wcName,
+                      childToParentDataMaping={},
+                      table = tableCtrl.controlObj,
+                      rowindex= getSelectedTableRow(table),
+                      tableObject= $.TableControl({table:table}),
+                      tableCell;
+
+                    $.each(childtoParentData,function(i,data) {
+
+                      var tmp = data.split("="),tableCell,tableCellServerVal,tableCellText;
+
+                      var parentDetails=tmp[0],
+                          childDetails=tmp[1],
+                          parentComponents = parentDetails.split('.'),
+                          childComponents = childDetails.split("."),
+                          parentControl = parentComponents[0]+"."+parentComponents[1],
+                          parentFieldIndex="DEFAULT",
+                          parentValueAttr="disp",
+                          selectedValue;
+                          
+
+                      if(parentComponents.length === 3) {
+                          if(isNaN(parentComponents[2])) {
+                              parentFieldIndex = parentComponents[2];
+                          }
+                          else if(parentComponents[2] === "key") {
+                              parentValueAttr = parentComponents[2];
+                          }
+                      }    
+
+                      else if(parentComponents.length === 4) {
+                          parentFieldIndex = parentComponents[2];
+                          parentValueAttr = parentComponents[3];
+                      }
+
+                      wcaName = childComponents[1];
+                      tableCell = tableObject.getCell(rowindex,wcaName);
+                      tableCellServerVal = tableCell.serverValue;
+                      tableCellText = tableCell.visibleText;
+                      parentControl = parentControl + "." + parentFieldIndex;
+
+                      selectedValue = tableCtrl.getSelectedValue(wcaName);
+                      childToParentDataMaping[parentControl] = {value : selectedValue,attr : parentValueAttr};
+
+                    });
+                  this.setValue(childToParentDataMaping);
+                    if(getWindowDirtyFlag() === "false"){
+                      setWindowDirtyFlag("true");
+                   }
+                    validateOnChildWindowClose(this.options.butId);
+                
+
+                    this.close();
+                },
+                setValue:function(childToParentDataMaping) {
+
+                  var winClass,domId,domUDCtype,
+                      wcaName,index,value,attr,cntrlType,
+                      that=this,
+                      udcControlType = this.options.udcControlType,
+                      windowRef = this.options.windowCalledFrom,
+                      i,winUdcControlType,dataCopied,destControlName;
+
+                  $.each(childToParentDataMaping, function(parentElement, parentMapingDetails) {
+
+                      winClass=parentElement.split('.')[0];
+                      wcaName=parentElement.split('.')[1];
+                      index=parentElement.split('.')[2];
+                      value = parentMapingDetails.value;
+                      attr = parentMapingDetails.attr;
+                      index = (!isNaN(index)) ? index : undefined;
+                      destControlName = windowRef.getControlName(winClass);
+                      domId = windowRef.getDomID(winClass,wcaName);
+                      domUDCtype = $(domId).attr('udctrltype');
+                      dataCopied = false;
+
+                      if(!domUDCtype){
+                        var parentDomId = domId.replace('_From',"").replace('_To',"");
+                        domUDCtype = $(parentDomId).attr('udctrltype');
+                      }
+
+                      if(attr === "key") {
+
+                        var ctrl = winClass.split('_wc_'),
+                            cntrlId = ctrl[0] + "_ct_" + ctrl[1] + "_" + wcaName;
+
+                        if(value !== "" && $("#"+cntrlId).length) {
+                            $("#"+cntrlId).attr("actualvalue",value)
+                        }
+                      }
+                      else {
+
+                          if(that.options.QbeType) {                              
+                              $('#loadDialog').find('iframe').contents().find('#'+domId).val(value);
+                          }
+                          else if(isGrid(windowRef.$("#"+destControlName))) {
+
+                            windowRef.setSelectedGridValue(winClass,wcaName,value,index);
+                          }   
+                          else {
+
+                              if(udcControlType && windowRef[udcControlType+"_setValueFromChildToParent"]) {
+                                  windowRef[udcControlType+"_setValueFromChildToParent"].call(this,winClass,wcaName,value,index);
+                              }
+                              else {
+
+                                  if(windowRef.udcControlsInWin && domUDCtype) {
+                                      for(i=windowRef.udcControlsInWin.length-1;i>=0;i--) {
+                                          if(udcControlsInWin[i] !== domUDCtype){
+                                            continue;
+                                          }
+                                          winUdcControlType = udcControlsInWin[i];
+                                          if(winUdcControlType && windowRef[winUdcControlType+"_setValueFromChildToParent"]) {
+                                              windowRef[winUdcControlType+"_setValueFromChildToParent"].call(this,winClass,wcaName,value,index);
+                                              dataCopied = true;
+                                          }
+                                      }
+                                  }
+                                  if(!dataCopied) {                                
+
+/*                                      if(isGrid(windowRef.$("#"+destControlName))) {
+                                          windowRef.setSelectedGridValue(winClass,wcaName,value,index);
+                                      } else {*/
+                                         wcaName = (windowRef.$("#"+destControlName + "_" + wcaName + "_Value").length) ? wcaName + "_Value" : wcaName;
+                                         windowRef.setValue(winClass,wcaName,value,index); 
+                                      /*}*/
+                                  }
+
+                              }
+                           }
+                      }
+                  });
+
+                },
+                getValue:function(table) {
+
+                  var childtoParentData;
+                  
+                    if(this.options.QbeType)
+                        childtoParentData=this.options.parentToChildDataCopyStr.split(",");
+                    else    
+                        childtoParentData=this.options.childToParentDataCopyStr.split(",");
+                 
+                  var wcaName,
+                      childToParentDataMaping={},
+                      rowindex= getSelectedTableRow(table),
+                      tableObject= $.TableControl({table:table});
+
+                  if(isNaN(rowindex) || rowindex < 0) {
+                      return;
+                  }    
+                      
+                  $.each(childtoParentData,function(i,data) {
+
+                    var tmp = data.split("="),tableCell,tableCellServerVal,tableCellText;
+
+                    var parentDetails=tmp[0],
+                        childDetails=tmp[1],
+                        parentComponents = parentDetails.split('.'),
+                        childComponents = childDetails.split("."),
+                        parentControl = parentComponents[0]+"."+parentComponents[1],
+                        parentFieldIndex="DEFAULT",
+                        parentValueAttr="disp",
+                        selectedValue;
+                        
+
+                    if(parentComponents.length === 3) {
+                        if(!isNaN(parentComponents[2])) {
+                            parentFieldIndex = parentComponents[2];
+                        }
+                        else if(parentComponents[2] === "key") {
+                            parentValueAttr = parentComponents[2];
+                        }
+                    }    
+
+                    else if(parentComponents.length === 4) {
+                        parentFieldIndex = parentComponents[2];
+                        parentValueAttr = parentComponents[3];
+                    }
+
+                    wcaName = childComponents[1];
+                    tableCell = tableObject.getCell(rowindex,wcaName);
+                    tableCellServerVal = tableCell.serverValue;
+                    tableCellText = tableCell.visibleText;
+                    parentControl = parentControl + "." + parentFieldIndex;
+
+                    selectedValue = (childComponents[childComponents.length - 1] === "disp") ? tableCellText : tableCellServerVal ? tableCellServerVal : tableCellText;
+                    childToParentDataMaping[parentControl] = {value : selectedValue,attr : parentValueAttr};
+                   
+                  });
+
+                  return childToParentDataMaping;
+                },
+                getWinClass: function(){
+                    var childToParentDataCopyStr;
+                          if(this.options.QbeType)
+                                childToParentDataCopyStr=this.options.parentToChildDataCopyStr;
+                            else    
+                            childToParentDataCopyStr=this.options.childToParentDataCopyStr;
+                    var childindex= childToParentDataCopyStr.split("=");
+                    var columns=childindex[1].split(".");
+                    var winclass=columns[0];
+                    return winclass;
+
+                },
+                getWindowCalledFrom: function(){
+
+                  return this.options.windowCalledFrom;
+                },
+                getButId:function(){
+                  return this.options.butId;
+                },
+                close:function(){
+                    var parentWindow = this.options.windowCalledFrom;
+                    top.qbeBtnClickedIds.pop(this.options.ctrlClickedId);
+                    $(this.element).Dialog("close");
+                    this.destroy();
+                    if(this.options.butId.length){
+
+                      var mappings = this.options.butId.split('.');
+                      if(mappings.length > 1) {
+                        parentWindow.setFocus(mappings[0], mappings[1], mappings[2]);
+                      }
+                    }                    
+                    $(this.element).remove();/*Qbe Changes*/                   
+                },
+                destroy:function(){
+                    $.Widget.prototype.destroy.call( this );
+                 }
+            });
+          }(jQuery));
+    });
+
+
+
+
+
+
+
+
