@@ -1,0 +1,536 @@
+/*global define:false bancs:false */
+define(["jquery","bancsutil/bancs.KeyCode","widgetFactory","bancsTemplate/TreeViewerSoy"],
+    function ($) {
+        "use strict";
+        (function ($,undefined){
+            $.widget("bancs.TreeView",{
+                options:{
+                    expand:'',
+                    image:{
+                        expanded:'bancs-button-expanded',
+                        collapsed:'bancs-button-collapsed',
+                        link:'bancs-button-link'
+                    },
+                    treeData:"",
+                    mode:'view',
+                    inputType:'',
+                    selectedNodeId:'',
+                    postClickFunction : {},
+                    postDblClickFunction: {}
+                },
+
+                _init:function(){
+                    var _self=this;
+                    _self._populateData();
+                    _self._setAttributes();
+                    _self._mouseEvent();
+                    _self._keyboardEvent();
+                },
+
+
+                _setAttributes:function(){
+                    var _self = this,
+                        tree,
+                        travesedNode=[],
+                        nodes,
+                        pid,
+                        anchor;
+                    if(!$(_self).parents('.tree').length){
+                        tree = _self.element.find(".bancsTree");
+                        anchor=tree.find('a');
+                        tree.attr('role','tree').addClass('tree');
+                        tree.find('ul').addClass('collapsed');
+                        tree.find('li').addClass('tree_li');
+                        tree.find('a:eq(0)').addClass("selected");
+                        tree.find('li:has(ul)').attr('aria-expanded','false');
+                        anchor.each(function(){
+                            _self._addImage($(this),_self.options.image.collapsed);
+                        });
+
+                    }
+                    tree.on('expandNode',function (event) {
+                        _self._expandNode(event);
+                    }).on('collapseNode', function (event) {
+                            _self._collapseNode(event);
+                        }).on('traverseDown', function () {
+                            _self._traverseDown();
+                        }).on('traverseUp', function () {
+                            _self._traverseUp();
+                        }).on('collapseTree', function () {
+                            _self._collapseTree();
+                        });
+            //added by samir to implement expand pattern of old on October 10, 2013
+                        nodes=_self.options.selectedNodeId.replace(/([.)(:])/g, "\\$1");  //Changes By Amit Dated: 31-Oct-2013
+                        travesedNode.push(nodes);
+			var nodeParentId = $('#'+nodes).attr('pid');
+                    while (nodeParentId && nodeParentId !=="parent"){  //Changes By Amit Dated: 31-Oct-2013
+
+                        pid='tree_'+nodeParentId;
+                        travesedNode.push(pid);
+                        nodes=pid;
+			nodeParentId = $('#'+nodes).attr('pid');
+                    }
+
+                    if(this.options.inputType !== "xml"){
+                        _self._nodeSelected(_self,travesedNode);    //Added to support core and si behaviour of collapsing the tree.
+                    }
+
+
+
+                },
+
+                _nodeSelected:function(_self,travesedNode){
+
+                    var nodeLength = (travesedNode.length);
+
+                    for(var i = nodeLength-1; i >= 0 ;i--){
+
+                        _self._expandNode();
+                        i!==0 ? $('#'+travesedNode[i]).find('a').removeClass("selected"):'';
+                        i!==0 ? $('#'+travesedNode[i-1]).find('a:eq(0)').addClass('selected'):'';
+
+                    }
+
+                },
+
+                //added by samir to implement expand pattern of old ends
+
+                _addImage:function(targ,status){
+                    var _self=this,
+                        collapsed=_self.options.image.collapsed,
+                        expanded=_self.options.image.expanded,
+                        link=_self.options.image.link;
+                    if(targ.next().is("ul")&&status===collapsed){
+                        targ.removeClass(expanded);
+                        targ.addClass(collapsed);
+                    }
+                    else if(targ.next().is("ul")&&status===expanded){
+                        targ.addClass(expanded);
+                    }
+                    else{
+                        targ.addClass(link);
+                    }
+                },
+
+                _populateData:function(){
+                    var tree=this.element,
+                        _self=this,
+                        treeData,
+                        inputType;
+
+                    treeData = this.options.treeData;
+                    inputType = this.options.inputType;
+                    $(tree).append(bancs.Tree.appendParent());
+                    switch (inputType){
+                        case "json":
+                            $(tree).find(".bancsTree").append(bancs.Tree.TreeView(treeData));
+                            break;
+                        case "xml":
+
+                            $(tree).find(".bancsTree").append(bancs.Tree.XMLtoHTML({xml:$($.parseXML(treeData)).children()}));
+                            break;
+                        case "string":
+                            $(tree).find(".bancsTree").append(_self._createTree(treeData,tree));
+                            break;
+                    }
+
+                },
+
+
+                _createTree:function(treeData,tree){
+                    var dataList = treeData.split("#^#"),
+                        treeDetails = {},
+                        treeLength,
+                        treeRef,
+                        includeChildren,
+                        _self = this,
+                        skip = false;
+             //changes by samir for bug (few data unable to enter and display and data having spaces)on October 10, 2013
+                    $(dataList).each(function( index){
+                        var reqData,
+                            reqData_2,
+                            treeId,
+                            thisData=this;
+                        reqData = this.split("@@");
+
+                        //Changes by Samir - 13-Feb-2014 - starts
+                        if(reqData.length > 4){
+                            skip = true;
+                            return;
+                        }
+                        //Changes by Samir - 13-Feb-2014 - ends
+
+                        reqData_2 = reqData[2];
+                        reqData_2 =  (!reqData_2) ? "parent":"child_"+reqData_2;
+
+                        // trim the spaces between the word
+                        reqData[2] =  (!reqData[2]) ? "parent"  :  (reqData[2].replace(/\s/g, ""));
+
+
+
+                        (index === 0) ? _self.options.selectedNodeId = ("tree_"+reqData[0].replace(/\s/g, "") ) :  ""; //Changes by Priya - 24.Jan.2014
+
+                        if(!treeDetails[reqData_2]){
+                            treeDetails[reqData_2]=[];
+                        }
+
+                        if(reqData[0]){
+                            reqData[0] = ("tree_"+reqData[0].replace(/\s/g, ""));
+
+                            treeDetails[reqData_2].push([reqData[0],reqData[1],thisData,reqData[2]]);
+                        }
+                    });
+
+                   //Changes by Samir - 13-Feb-2014 - starts
+                    if(skip){
+                        return;
+                    }
+                   //Changes by Samir - 13-Feb-2014 - ends
+
+//                    treeRef = Object.getOwnPropertyNames(treeDetails);  // Not working in IE and IE7
+//                    treeLength = Object.keys(treeDetails).length;       // Not working in IE8 and IE7
+
+                    treeRef = _self._getTreeDetails(treeDetails);
+                    treeLength = treeRef.length;
+
+                    $(tree).find(".bancsTree").append(bancs.Tree.StringToHTML({treeData:treeDetails.parent,parent:true}));
+                    delete treeDetails.parent;
+
+                    includeChildren=function(treeRef){
+                        var curData,
+                            newTreeDetails,
+                            valueChildIdToAppend,
+                            childIdToAppend;
+
+                        $(treeRef).each(function(index,value){
+                            if(value !== "parent"){
+                                valueChildIdToAppend = (value.split("_")[1]).replace(/\s/g, "");
+                                childIdToAppend = $("#tree_"+valueChildIdToAppend);
+                                if(childIdToAppend.length){
+                                    curData = treeDetails[value];
+                                    childIdToAppend.append(bancs.Tree.StringToHTML({treeData:curData,parent:false}));
+                                    delete treeDetails[value];
+                                }
+                            }
+                        });
+                        newTreeDetails = _self._getTreeDetails(treeDetails);
+                        treeLength = newTreeDetails.length;
+                        if(treeLength){
+                            treeRef = newTreeDetails;
+                            includeChildren(treeRef);
+                        }
+                    };
+                    includeChildren(treeRef);
+                },
+    //changes by samir for bug (few data unable to enter and display and data having spaces)on October 10, 2013
+
+                _getTreeDetails:function(treeDetails){
+                    var treeRef = [];
+                    $.each(treeDetails,function(index){
+                        treeRef.push(index);
+                    });
+                    return treeRef;
+                },
+
+                _mouseEvent:function() {
+                    var _self,
+                         parent = this.element.find(".bancsTree"),
+                         mode = this.options.mode,
+                         postClickFunction = this.options.postClickFunction,
+                         postDblClickFunction = this.options.postDblClickFunction;
+
+                    parent = this.element.find(".bancsTree");
+                    mode = this.options.mode;
+                    $(parent).on("click",".treeLink",function(event) {
+
+                        event.preventDefault();
+
+
+                        _self = this;
+                        $(parent).find(".selected").removeClass("selected");
+                        $(parent).find(_self).addClass('selected');
+
+			//Changes by Priya - 24.Jan.2014 - starts
+                        if(event.target.tagName.toUpperCase() !=="LABEL"){
+                            if(!$(_self).hasClass("bancs-button-link")){
+                                if ($(_self.parentElement).is('[aria-expanded=false]')){
+                                    $(_self).trigger('expandNode');
+                                }
+                                else{
+                                    $(_self).trigger('collapseNode');
+                                }
+                            }
+                        }
+                         if(typeof postClickFunction === "function" && postClickFunction) {
+                            postClickFunction.apply(undefined,[$(this).attr('data-attr')]);
+                         }
+
+                    });
+
+                    $(parent).on("dblclick",".treeLink",function(event) {
+
+                        event.preventDefault();
+                        _self = this;
+                        $(parent).find(".selected").removeClass("selected");
+                        $(parent).find(_self).addClass('selected');
+                         if(event.target.tagName.toUpperCase() !=="LABEL"){
+                        if(!$(_self).hasClass("bancs-button-link")){
+                            if ($(_self.parentElement).is('[aria-expanded=false]')){
+                                $(_self).trigger('expandNode');
+                            }
+                            else{
+                                $(_self).trigger('collapseNode');
+                            }
+                        }
+                    }
+
+                         if(typeof postDblClickFunction === "function" && postDblClickFunction) {
+                            postDblClickFunction.apply(undefined,[$(this).attr('data-attr')]);
+                         }
+                        // $(_self).trigger('onClick', _self);
+
+                    });
+			//Changes by Priya - 24.Jan.2014 - ends
+
+                    if(mode === "edit"){
+                        $(".treeTextNode").on("click",function(event){
+                            var _self = this,
+                                inputBox,
+                                labelValue;
+
+                            $(parent).find(".selected").removeClass("selected");
+                            $(_self).parent().find(".treeLink").addClass("selected");
+                            labelValue = $(_self).text();
+                            $(_self).replaceWith("<input class='edited treeTextNode treeLink bancs-button-link selected' type='text' value='"+labelValue+"'/>");
+                            inputBox = $(parent).find(".edited.selected");
+                            inputBox[0].style.width = ((inputBox.val().length * 6)+20)+"px";
+                            inputBox.on("keydown", function (e){
+
+                                $(this)[0].style.width = (($(this).val().length * 6)+20)+"px";
+                            });
+                            inputBox.on("keyup", function (e){
+
+                                $(this)[0].style.width = (($(this).val().length * 6)+20)+"px";
+                            });
+
+                            inputBox.on("dblclick" , function(e){
+                                inputBox[0].readOnly = inputBox[0].readOnly ? false : true;
+                                inputBox[0].readOnly ? inputBox.addClass("disabledInput") : inputBox.removeClass("disabledInput");
+                            });
+                            $(parent).find(".selected").focus();
+                            event.preventDefault();
+
+                        });
+                    }
+                },
+
+                _getIndex:function (elementRef){
+                    var currentIndex;
+                    currentIndex = $(elementRef).parents(".parent_ul:first").find($(elementRef)).index();
+                    return currentIndex;
+                },
+
+                _getPath:function(parentNodes){
+                    var treePath = [],
+                        _self = this;
+                    $(parentNodes).each(function(index,value){
+                        treePath[index] = _self._getIndex($(this));
+                    });
+                    return treePath;
+                },
+
+
+
+                getEditedTreeData:function(){
+                    var treePath,
+                        parentNodes,
+                        nodePath ,
+                        _self = this,
+                        editedXML,
+                        mode = _self.options.mode,
+                        inputType = _self.options.inputType,
+                        treeData = $($.parseXML(_self.options.treeData).childNodes);
+
+                    if(inputType === "xml"){
+                        $(_self.element).find(".edited").each(function(){
+                            nodePath = "";
+                            parentNodes = $(this).parents("li.tree_li");
+                            treePath = _self._getPath(parentNodes.get().reverse());
+
+                            $(treePath).each(function(index,value){
+                                if(index){
+                                    nodePath = nodePath + ">:eq("+value+")";
+                                }
+                            });
+                            if(nodePath === "" && treeData.length === 1){
+                                treeData.text($(this).val());
+                            }else{
+                                treeData.find(nodePath).text($(this).val());
+                            }
+
+
+                        });
+                        // editedXML = treeData[0].outerHTML;
+                        // if (window.ActiveXObject){
+                        //     var xmlString = xmlData.xml;
+                        //     }
+                        
+                        if (window.ActiveXObject){
+                            editedXML = treeData[0].xml;
+                        }else{
+                        	editedXML = (new XMLSerializer()).serializeToString(treeData[0]);
+                        }
+                        return editedXML;
+                    }
+                },
+
+                _keyboardEvent:function () {
+                    var target = this,
+                        tree=target.element,
+                        key;
+
+                    $(document).on("focus",".treeLink",function(){
+                        target=tree.find('.selected');
+                        target.removeClass("selected");
+                        $(this).addClass('selected');
+
+                    });
+
+                    $(tree).on("keydown",".treeLink",function(event){
+                        var _self = this;
+                        key = event.keyCode;
+                        switch(key){
+                            case $.bancs.keyCode.LEFT:
+                                $(_self).trigger('collapseNode');
+                                break;
+                            case $.bancs.keyCode.UP :
+                                $(_self).trigger('traverseUp');
+                                break;
+                            case $.bancs.keyCode.RIGHT:
+                                $(_self).trigger('expandNode');
+                                break;
+                            case $.bancs.keyCode.DOWN:
+                                $(_self).trigger('traverseDown');
+                                break;
+                            case $.bancs.keyCode.ESCAPE:
+                                $(_self).trigger('collapseTree');
+                                break;
+                            case $.bancs.keyCode.ENTER:
+                                $(_self).trigger('openLink');
+                                break;
+                            default: break;
+                        }
+                    });
+
+
+                } ,
+
+
+                _collapseNode:function (event){
+                    var tree = this.element,
+                        _self = this,
+                        collapsed=_self.options.image.collapsed,
+                        expanded=_self.options.image.expanded,
+                        link=_self.options.image.link,
+                        targ=tree.find('.selected') || event.target;
+                    targ.next().addClass('collapsed').remove('style');
+                    targ.parent().attr('aria-expanded', 'false');
+                    _self._addImage(targ,collapsed);
+                },
+
+                _expandNode:function(event){
+                    var tree=this.element,
+                        _self=this,
+                        collapsed=_self.options.image.collapsed,
+                        expanded=_self.options.image.expanded,
+                        nextElem,
+                        targ = tree.find('.selected') || event.target;
+                    if(targ.parent().children('ul').length===0){
+                        return;
+                    }
+                    else{
+                        nextElem = targ.next();
+                        nextElem.removeClass('collapsed');
+                        nextElem.css("margin-left","10px");
+                        targ.parent().attr('aria-expanded','true');
+                        _self._addImage(targ,expanded);
+                    }
+                },
+
+                _collapseTree:function () {
+                    var tree=this.element,
+                        _self=this,
+                        expanded=_self.options.image.expanded;
+                    tree.find("."+expanded).eq(0).addClass("selected").focus();
+
+                    tree.find("."+expanded).removeClass(expanded);
+                    tree.find("ul.parent_ul").addClass("collapsed");
+                    tree.find(".tree_li").attr("aria-expanded","false");
+
+                },
+
+                _traverseDown:function () {
+                    var tree=this.element,
+                        target = tree.find('.selected'),
+                        target_LI = target.parent(),
+                        nextNode;
+                    target.removeClass('selected');
+                    if (target_LI.is('[aria-expanded=true]')) {
+                        nextNode = target.next().find('a:eq(0)');
+                        nextNode.length?nextNode.addClass('selected'):target.next().find('.edited').addClass('selected');
+
+                    }
+
+                    else if(target.parent().next('li').length===0){
+                        target.addClass('selected');
+                    }
+                    else if(target_LI.next().length) {
+                        target_LI.next().find('a:eq(0)').addClass('selected');
+
+                    }
+                    else if(target.next().length===0){
+                        target_LI.parent().parent().next().find('a:eq(0)').addClass('selected');
+                    }
+                    else{
+                        target.last('a').addClass('selected');
+                    }
+                    tree.find('.selected').focus();
+
+                },
+
+                _traverseUp:function(){
+                    var tree=this.element,
+                        target = tree.find('.selected'),
+                        targLI = target.parent(),
+                        parentLI,
+                        prevLI,
+                        prevComponent;
+                    target.removeClass('selected');
+                    if (targLI.length) {
+                        if (targLI.prev().is('[aria-expanded=true]')) {
+                            prevComponent = targLI.prev().find('li:visible:last a');
+                            prevComponent.length?prevComponent.eq(0).addClass('selected'):targLI.prev().find(".treeTextNode:visible").addClass('selected');
+
+                        }
+                        else if(targLI.prev().length===0){
+                            parentLI = targLI.parents(".tree_li:first");
+                            prevLI = (parentLI.length)? parentLI.children("a") : target;
+                            prevLI.addClass("selected");
+                        }
+                        else {
+                            target.hasClass('treeTextNode')?targLI.prev().addClass('selected'):targLI.prev().find('a').eq(0).addClass('selected');
+
+                        }
+                    }
+                    else {
+                        targLI.parents('li:eq(0)').find('a').eq(0).addClass('selected');
+                    }
+                    tree.find('.selected').focus();
+                },
+                destroy:function() {
+                    $(this.element).empty();
+                    $.Widget.prototype.destroy.call(this);
+                }
+            });
+        }($));
+    });

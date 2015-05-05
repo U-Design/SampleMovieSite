@@ -1,0 +1,537 @@
+/**
+ * Created with IntelliJ IDEA.
+ * User: 485309
+ * Date: 9/21/12
+ * Time: 6:10 PM
+ * To change this template use File | Settings | File Templates.
+ */
+define(["jquery", "widgetFactory", "bancswidget/bancs.Overlay"],
+function($){
+    (function($,undefined){
+        $.widget("bancs.Dialog",{
+            options:{
+                title:"",
+                height:400,
+                width:600,
+                buttons:[],
+                url:"",
+                modal:true,
+                url:"",
+                csrf:false,
+                formElementsForCSRF : {},
+                footer:true,
+                headerClose:true,
+                afterClose:{
+                    func : {},
+                    params : []
+                },
+                beforeClose:{
+                    func : {},
+                    params : []
+                },
+                cancel:{
+                    display:"block",
+                    text:top.guimod.labelCancel
+                },
+                dialogContent:"" ,
+                customAttributes : {},
+                isAnchorEventPrevented:true, //to prevent anchor from taking the browser to a new URL
+                draggable:true
+
+            },
+
+            _create:function(){
+
+               /* var dialogTag = $(this.element)[0].tagName.toLowerCase();
+                if(dialogTag == "body") {
+                    var newDialogContainer = document.createElement("div");
+                    $(newDialogContainer).attr('data-iden','bodyDialog');
+                    $(newDialogContainer).appendTo('body');
+                    this.element = $(newDialogContainer);
+                } */
+                var self=this;
+                self._renderDialog();
+                /*self._renderHeader();
+                self._renderFooter();*/
+                //$(document).on('keydown',{that:self},self._KeyUp);
+            },
+            _renderDialog:function() {
+                var self =this,
+                    url = self.options.url || $(self.element).data("url"),
+                    isBodyDialog = typeof(self._createElement()) === "object",
+                    dialogDOMRef = self._createElement()||self.element;
+            /*$(dialogDiv).addClass("bancs-dialog");*/
+               /* $(dialogDiv).width(self.options.width);*/
+                var header =  self._renderHeader(), footer = self._renderFooter();
+                var dialogContentHeight = self.options.height;
+                $(dialogDOMRef).height(dialogContentHeight);
+                /*var dialog = $(dialogDOMRef).wrap(dialogDiv);*/
+                /*$(header).insertBefore(dialogDOMRef) ;*/
+                if(url){
+                    self._loadPage(url,$(dialogDOMRef)[0]);
+                }
+                if(isBodyDialog){
+                    dialogDOMRef = self._renderDialogonBody(dialogDOMRef,header,footer);
+                }else{
+                    dialogDOMRef = self._renderDialogOnDOM(dialogDOMRef,header,footer);
+                }
+                $(dialogDOMRef).width(self.options.width);
+                /*$(footer).insertAfter(dialogDOMRef);*/
+
+                if(isBodyDialog){
+                    $(self.element).append(dialogDOMRef);   /*QBE Changes */
+                }
+                else{
+                $(dialogDOMRef).show();
+            }
+                if(this.options.csrf) {
+                    $("#csrfForm")[0].submit();
+                }
+
+                var overlay = self.options.modal ? self._addModal($(dialogDOMRef).closest(".bancs-dialog")):null;
+                if(self.options.draggable){
+                   self.bindDrag($(dialogDOMRef).closest(".bancs-dialog"),self.options.width,self.options.height); 
+               }                
+            },
+            _renderDialogOnDOM:function(dialogDOMRef,header,footer){
+                var dialogDiv = document.createElement("div");
+                $(dialogDiv).addClass("bancs-dialog");
+                $(dialogDiv).attr(this.options.customAttributes);
+                var dialog = $(dialogDOMRef).wrap(dialogDiv);
+                $(header).insertBefore(dialogDOMRef);
+                $(footer).insertAfter(dialogDOMRef);
+                return dialogDOMRef;
+
+            },
+            _renderDialogonBody:function(dialogDOMRef,header,footer){
+                 var dialogDiv = document.createElement("div");
+                 $(dialogDiv).addClass("bancs-dialog");
+                 $(dialogDiv).attr(this.options.customAttributes);
+                $(dialogDiv).append(header);
+                $(dialogDiv).append(dialogDOMRef);
+                if(this.options.footer){
+                   $(dialogDiv).append(footer);
+                }
+                return dialogDiv;
+
+            },
+            _createElement:function(){
+                var loadDialog,
+                    dialogContent=this.options.dialogContent;
+                if($(this.element).prop("tagName") === "BODY" || this.options.customAttributes.type === "QBE"){
+                    loadDialog = document.createElement("div");
+                    $(this.element).parent().find("[data-isLastDialog = true]").removeAttr("data-isLastDialog"); /*QBE Changes */
+                    $(this.element).attr("data-isLastDialog","true");
+                    $(loadDialog).attr({"id":"loadDialog","data-dialog":"body"}); /*QBE Changes */
+                }
+                if(dialogContent){
+                    $(loadDialog).append(this.options.dialogContent);
+                }
+                return loadDialog;
+            },
+
+            _loadPage:function(url,dialogDOMRef){
+
+                var loadFrame = document.createElement("iframe"),
+                    iframeTitle = "Dialog Iframe";
+                $(loadFrame).attr(this.options.customAttributes);    //$('<iframe src=./audit.html></iframe>');
+                if(this.options.csrf) {
+                    $(loadFrame).attr({"frameBorder":0,"title": iframeTitle});
+                    loadFrame.name = "csrfFrame";
+
+                    var form = document.createElement("form");
+                    form.id = "csrfForm";    
+                    form.action = url;
+                    form.target = "csrfFrame";
+                    form.method = "POST";
+
+                    var csrfToken = document.createElement("input");
+                    csrfToken.type = "hidden";
+                    csrfToken.id = "rndaak";
+                    csrfToken.name = "rndaak";    
+                    csrfToken.value = top.guimod.rndaak;
+                    form.appendChild(csrfToken);
+                    dialogDOMRef.appendChild(form);
+                }
+                else {
+                    $(loadFrame).attr({"src":url,"frameBorder":0,"title": iframeTitle});
+                }
+
+                dialogDOMRef.appendChild(loadFrame);
+                //$(dialogDOMRef).html(loadFrame);
+
+               /* $(loadFrame).contents().ready(function(){
+                    setTimeout(function(){
+                    $($(loadFrame).contents().find('frame')[1].contentDocument).ready(function(){
+                    setTimeout(function(){
+                      var width=$($(loadFrame).contents().find('frame')[1].contentDocument).find('#wintitle').width(),
+                          height="450px";
+
+                    $('.bancs-dialog').width(width+100);
+                    $('[data-role="bancs.DialogContent"]').height(height);
+                },2000);
+                },2000);
+                });
+
+                });*/
+
+
+
+              /* var self= this;
+                $.ajax({
+                    url:"./audit.html",
+                    success:function(html,textStatus,xhr){
+
+                        $(self.element).html(html);
+                    },
+                    error: function( xhr, textStatus, errorThrown ){
+                     //   var xhr;
+                    }
+                });*/
+            },
+            _addModal:function(dialogDiv){
+               return $(dialogDiv).Overlay();
+
+            },
+            _addHeaderCloseButton:function(){
+                var self=this,closeLink = document.createElement("a");
+                $(closeLink).attr("href","#");
+                $(closeLink).attr("id","Close");
+                $(closeLink).attr("title",top.guimod.labelClose);    
+                $(closeLink).addClass("bancs-dialog-close");
+                $(closeLink).on("click",function(event){
+                    event.preventDefault();
+                    self.close();
+                }) ;
+
+                return closeLink;
+
+
+            },
+             _renderHeader:function(){
+                 var self=this, headerdiv = document.createElement("div"),headerTitle = document.createElement("span"),
+                     headerClose = document.createElement("span");
+                 $(headerdiv).append(headerTitle).append(headerClose);
+                 $(headerTitle).addClass("bancs-dialog-title");
+                 $(headerTitle).text(self.options.title);
+                 if(self.options.headerClose){
+                 $(headerClose).append(self._addHeaderCloseButton());
+                 /*$(headerTitle).addClass("bancs-dialog-headerTitle");*/
+                 $(headerClose).addClass("bancs-dialog-headerImg");
+             }
+                 $(headerdiv).addClass("bancs-dialog-header");
+                 $(headerdiv).css("width",self.options.width);
+
+                 return headerdiv;
+
+             },
+            _renderFooter:function() {
+
+                var self =this,footerDiv = document.createElement("div"),footerSpan  = document.createElement("span"),
+                    btnFooter, footerCancel = self._renderCloseButton();
+                $(footerDiv).addClass("bancs-dialog-footer");
+                $(footerDiv).css("width",self.options.width);
+                self._renderFooterButton(footerSpan);
+                footerCancel?$(footerSpan).append(footerCancel):"";
+                $(footerDiv).append(footerSpan);
+
+                /* Added By Aniket Starts*/
+                $(footerDiv).on("click", ".dialogBtnDiv", {self : self}, function(e) {   
+
+                        var self = e.data.self,
+                            btnFooter = this.childNodes[0];
+
+                        if(btnFooter.id === "footerCloseBtn") {
+                            e.preventDefault();
+                            self.close();
+                            e.returnValue=false;
+                        }    
+                        else {
+
+                            var btnIndex = $(this).index(),
+                                btnOptions = self.options.buttons[btnIndex],
+                                params = [e];
+
+                            if(self.options.isAnchorEventPrevented) {
+                                e.preventDefault();
+                            }
+                            if($(btnFooter).hasClass("bancs-btn-disabled")){
+                                return false;
+                            }
+                            if(btnOptions.params) {
+                                params = params.concat(btnOptions.params);
+                            }
+
+                            btnOptions.click.apply(btnFooter,params);
+                        }
+                        
+                    });
+
+                    /* Added By Aniket Ends*/
+
+                
+                return footerDiv;
+            },
+            _renderFooterButton:function(footerSpan){
+                var self= this,
+                btn_id="";
+                $.each(self.options.buttons,function(i,btn){
+                    btnFooter =  document.createElement("a");
+                    btn_id=btn.text.replace(/\s+/, "");
+                    $(btnFooter).text(btn.text);
+                    $(btnFooter).attr("title",btn.text);//Porting change for button tooltip(Sayan Date:-31.1.2014)
+                    $(btnFooter).attr("id",btn_id+"_dialogButton");
+                    $(btnFooter).addClass("bancs-btn bancs-btn-normal bancs-btn-medium");
+                    /*Changes made by Suchi For making button images configurable Starts - on Oct 30th 2013*/
+                    if(btn.buttonImg){
+                        $(btnFooter).addClass(btn.buttonImg);
+                    }
+                    /*Changes made by Suchi Ends- on Oct 30th 2013*/
+                    self.disableButton(btn.disabled,btnFooter);
+                    
+                    if(btn.blur){
+                      $(btnFooter).on("blur",function(e){
+                                      e.preventDefault();
+                            if($(this).hasClass("bancs-btn-disabled")){
+                                return false;
+                            }
+                            btn.blur.call(this,e);
+                        });
+                  }
+
+                  $( btnFooter).wrap( "<div class='dialogBtnDiv'></div>" );
+                  $(footerSpan).append($(btnFooter).parent());
+
+                });
+            },
+            disableButton:function(disabled,btn){
+             disabled = disabled === undefined?false:disabled;
+             var btn = typeof btn === "object"?btn:$(".bancs-dialog-footer").find("a").eq(btn);
+             $(btn).toggleClass("bancs-btn-disabled",disabled);
+             $(btn).toggleClass("bancs-btn-normal",!disabled);
+             disabled?$(btn).removeAttr("href"):$(btn).attr("href","#");
+            },
+            getDocument:function(){
+                var doc = "";
+                if(this.options.url !== ""){
+                    doc = this.element.find("iframe").contents()
+                }
+                return doc;
+                },
+            _setOptions:function (options) {
+                var self = this,footerSpan = document.createElement("span");
+                $.each(options, function (key, value) {
+                    self._setOption(key, value);
+                    if(key === "url"){
+                        self.element.find("iframe").attr("src",value);
+                    }
+                    if(key === "buttons"){
+                        var footerDiv = self.element.siblings(".bancs-dialog-footer"),footerCancel = self._renderCloseButton();
+                        footerDiv.empty();
+                        self._renderFooterButton(footerSpan);
+                        footerCancel?$(footerSpan).append(self._renderCloseButton()):"";
+                        footerDiv.append(footerSpan);
+                    }
+                        
+
+                });
+
+                return this;
+            },
+
+
+            _renderCloseButton:function() {
+
+                var self =this,closeBtn,closeBtnDiv;
+
+                if(self.options.cancel.display.toUpperCase() === "BLOCK"){
+                    closeBtn = document.createElement("a");
+                    $(closeBtn).addClass("bancs-btn bancs-btn-normal bancs-btn-medium");
+                    $(closeBtn).text(self.options.cancel.text);
+					$(closeBtn).attr("title",self.options.cancel.text); //Changes Made By Sayan For Porting(Date:-3.2.2014)
+                    $(closeBtn).attr("href","#");
+                    $(closeBtn).attr("id","footerCloseBtn");
+
+                   $( closeBtn).wrap( "<div class='dialogBtnDiv'></div>" );
+                   closeBtnDiv = $(closeBtn).parent();
+
+                }
+                return closeBtnDiv;
+
+            },
+            _KeyUp:function(event){
+                var that=event.data.that;
+                if(event==null)
+                    event=window.event;
+                if(event.keyCode===27)
+                {
+                    that.destroy();
+                }
+            },
+            close:function(){
+                this.destroy();
+            },
+            removeContent:function(dialog,dialogElement){
+                 dialog.find(".bancs-dialog-header").remove();
+                 dialog.find(".bancs-dialog-footer").remove();
+                 if(dialogElement){
+                    dialogElement.remove();
+                    dialog.remove();
+                 }
+                 else if($.trim(this.options.url)) {
+                    $(this.element).empty();
+                 }
+
+            },
+            destroy:function() {
+                var dialogElement=this.options.dialogContent,
+                    self =this,
+                    beforeClose = self.options.beforeClose,
+                    afterClose = self.options.afterClose,
+                    dialog,
+                    isBodyDialog;
+                
+                $.Widget.prototype.destroy.call( this );
+
+                if($(self.element).css('display') === "none"){
+                    return false;
+                }
+
+                if( typeof beforeClose.func === "function") {
+                   beforeClose.func.apply(this,beforeClose.params);
+                }
+
+                if(dialogElement===""){
+                    isBodyDialog = $(self.element).prop("tagName") === "BODY";
+                    //dialog = isBodyDialog?self.element.find("[data-dialog=body]").closest(".bancs-dialog"):self.element.closest(".bancs-dialog");
+                    // dialog = isBodyDialog?self.element.find("[data-dialog=body]").closest(".bancs-dialog"):self.element.find(".bancs-dialog");
+                    /*qbe Changes*/ 
+                    if(isBodyDialog){
+                        dialog = self.element.find("[data-dialog=body]").closest(".bancs-dialog");
+                    }else{
+                        dialog = self.element.closest(".bancs-dialog").length ? self.element.closest(".bancs-dialog"):self.element.find(".bancs-dialog");
+                    }
+                    
+                    if(isBodyDialog){
+                        dialog.remove();
+                    }
+                    else{/*QBE Changes */
+                         this.removeContent(dialog);
+                         $(self.element).unwrap();
+                         $(self.element).hide();
+                         $(self.element).attr("data-qbe","false").removeAttr("data-isLastDialog");
+                                               
+                        var qbeDialog = $("[data-qbe=true]").last();                            
+                        
+                        qbeDialog.attr("data-isLastDialog","true");
+                        
+                    }
+                    /*QBE Changes */
+                }
+                else{
+                    dialog=$(dialogElement).closest(".bancs-dialog");
+                    this.removeContent(dialog,$(dialogElement));
+                }
+
+                if( typeof afterClose.func === "function") {
+                   afterClose.func.apply(this,afterClose.params);
+                }
+
+                /*$.Widget.prototype.destroy.call( this );*/
+		//Changes by Sayan - 05.Nov.2013 - starts
+                if( guimod.isActive){
+                     guimod.isActive.focus();
+                }
+		//Changes by Sayan - 05.Nov.2013 - ends
+            },
+
+            bindDrag: function(dialog, dialogWidth, dialogHeight){
+
+                var applyDragging = function() {
+
+                    var that = this;        
+                    var mouseOffset= null , dragObject = null;
+
+                    that.mouseCoords = function(event){/*mouse cooridanates*/
+                        if(event.pageX || event.pageY){
+                            return {x:event.pageX, y:event.pageY};
+                        }
+                        return{
+                            x:event.clientX + document.body.scrollLeft - document.body.clientLeft,
+                            y:event.clientY + document.body.scrollTop -  document.body.clientTop
+                        };
+                    };
+
+                    that.getMouseOffset = function(target,event){
+                        event = event || window.event;
+                        var objPos = getDomPosition(target);
+                        var mousePostion = mouseCoords(event);
+                        return {x:mousePostion.x - objPos.x ,y:mousePostion.y - objPos.y};
+                    };
+
+                    that.getDomPosition = function(target){ /*dom  top and left coordinates*/
+                        var left =0 ,top =0 ;
+
+                        if(target.offsetParent){
+                            left +=target.offsetLeft;
+                            top +=target.offsetTop;
+                        }
+                        return {x:left, y:top};
+                    };
+
+                    that.onMouseMove = function(event){
+
+                        event = event || window.event;
+                        var mousePostion = mouseCoords(event),
+                            $window = $(window),
+                            maxLeft = $window.width() - dialogWidth - 5,
+                            maxTop = $window.height() - dialogHeight - 5;
+                        if(dragObject){
+                            //dragObject.style.position ='absolute';
+                            var top = mousePostion.y - mouseOffset.y,
+                                left = mousePostion.x - mouseOffset.x;
+                            top = top <= 0 ? 0 : (top >= maxTop ? maxTop : top);
+                            left = left <= 0 ? 0 : (left >= maxLeft ? maxLeft : left);
+                            dragObject.style.top = top+"px";
+                            dragObject.style.left = left+"px";
+                            dragObject.style.cursor = "move";
+                            return false;
+                        }
+                    };
+
+                    that.onMouseUp = function(){
+                        if(dragObject){
+                            dragObject.style.cursor = "";
+                            dragObject = null;
+                        }
+                    };
+
+                    that.makeDraggable = function(domObject){
+                        if($(domObject).length){
+                            $(domObject).on('mousedown', '.bancs-dialog-header',function(event){
+                                dragObject = event.delegateTarget;
+                                mouseOffset = getMouseOffset(dragObject,event);
+                                return false;
+                            });
+                        }
+                    };
+                    $(document).on('mouseup',onMouseUp);
+                    $(document).on('mousemove',onMouseMove);
+                    
+
+
+                    return{
+                        makeDraggable: makeDraggable
+                    }
+                };
+
+                applyDragging().makeDraggable(dialog);
+            }
+
+        });
+        guimodReady.ready(function(){
+            $("[data-role=bancs\\.DialogContent]").hide();
+        })
+
+}(jQuery));
+});
